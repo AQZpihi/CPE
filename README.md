@@ -1,14 +1,18 @@
 # CPEtest
-
-## 一、閱讀題目 (英文理解)
-
-## 二、規劃程式 (撰寫流程)
-
-## 三、Coding (實作)
-
+code 使用方法:
+1. 在下方年份中選擇預練習試題的日期(crtl+C)
+2. 覆蓋mian程式中url後面日期的
+3. 執行
 ## 補充:歷屆分析(2011-2024)
 註:近五年的題目以1.1倍加權
-![圖片描述](use-header-times.png)<iostream> <cstdio> <vector> <algorithm> <stdio.h> <bits/stdc++.h> <string> <cmath> <string.h> <map> <stdlib.h> <cstring> <queue> <iomanip> <stack> <set> <cstdlib> <deque> <sstream> <utility> <list> <exception> <cctype> <assert.h> <limits.h>
+![use-header-times.png](https://github.com/user-attachments/assets/8ed48c9f-f6b1-4cb4-bb87-ba2a5135b64b)
+## 一、閱讀題目 (英文理解)
+~自行添加
+## 二、規劃程式 (撰寫流程)
+~自行添加
+## 三、Coding (實作)
+~自行添加
+<iostream> <cstdio> <vector> <algorithm> <stdio.h> <bits/stdc++.h> <string> <cmath> <string.h> <map> <stdlib.h> <cstring> <queue> <iomanip> <stack> <set> <cstdlib> <deque> <sstream> <utility> <list> <exception> <cctype> <assert.h> <limits.h>
     
 函數學習方式(請將以下文字粘貼至AI工具中)：
 C++ - 函數學習
