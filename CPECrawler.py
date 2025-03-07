@@ -8,9 +8,11 @@ import warnings
 warnings.filterwarnings("ignore", category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 def sanitize_filename(filename):
+    """移除檔案名稱中的非法字元，並確保檔案名稱的安全性。"""
     return re.sub(r'[\\/*?:"<>|\n\t]', "", filename).strip()
 
-def download_and_save(link, filename_prefix, folder='CPE/test'):
+def download_and_save(link, filename_prefix, folder):
+    """下載並儲存指定連結的內容。"""
     try:
         os.makedirs(folder, exist_ok=True)
         response = requests.get(link, verify=False)
@@ -18,15 +20,21 @@ def download_and_save(link, filename_prefix, folder='CPE/test'):
         soup = BeautifulSoup(response.content, 'html.parser')
         
         for i, pre_tag in enumerate(soup.find_all('pre')):
-            with open(f'{folder}/{filename_prefix}_{i+1}.txt', 'w', encoding='utf-8') as f:
+            filename = f'{folder}/{filename_prefix}_{i+1}.txt'
+            with open(filename, 'w', encoding='utf-8') as f:
                 f.write(pre_tag.text.strip())
+            print(f"測試資料已儲存為 {filename}")
+    except requests.exceptions.RequestException as e:
+        print(f"下載 {link} 失敗 (網路錯誤): {e}")
+    except IOError as e:
+        print(f"儲存檔案 {filename} 失敗 (IO 錯誤): {e}")
     except Exception as e:
-        print(f"下載失敗: {link}，錯誤: {e}")
+        print(f"下載 {link} 失敗: {e}")
 
 def main():
-    url = 'https://cpe.cse.nsysu.edu.tw/cpe/test_data/2020-05-26'
+    url = 'https://cpe.mcu.edu.tw/cpe/test_data/2022-10-18'
 
-    # 從URL提取日期並創建對應資料夾
+    # 從 URL 提取日期並創建對應資料夾
     date = url.split('/')[-1]
     base_folder = f'CPE/{date}'
     code_folder = f'{base_folder}/code'
@@ -36,56 +44,68 @@ def main():
     os.makedirs(code_folder, exist_ok=True)
     os.makedirs(test_folder, exist_ok=True)
     
-    response = requests.get(url, verify=False)
-    
-    if response.status_code != 200:
-        print(f"無法訪問該網站，狀態碼: {response.status_code}")
+    try:
+        response = requests.get(url, verify=False)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"無法訪問該網站 {url} (網路錯誤): {e}")
         return
         
     soup = BeautifulSoup(response.content, 'html.parser')
 
-    # 提取PDF連結
+    # 提取 PDF 連結
     pdf_links = [urljoin(url, link['href']) for link in soup.find_all('a', href=True) 
                 if 'problemPdf' in link['href'] and link['href'].endswith('.pdf')]
     print("找到的 PDF 連結:", *pdf_links, sep='\n')
 
     # 提取與下載程式碼
-    code_links = [link['href'] for link in soup.find_all('a', href=True)
+    code_links = [urljoin(url, link['href']) for link in soup.find_all('a', href=True)
                  if 'problemPdf' in link['href'] and link['href'].endswith('.php') 
                  and 'testData' not in link['href']]
 
     for code_link in code_links:
-        code_response = requests.get(code_link, verify=False)
-        if code_response.status_code == 200:
+        try:
+            code_response = requests.get(code_link, verify=False)
+            code_response.raise_for_status()
             code_soup = BeautifulSoup(code_response.content, "html.parser")
             if code_section := code_soup.find("pre", class_="prettyprint"):
                 code_text = code_section.get_text().strip()
                 if "//uva" in code_text:
-                    filename = re.search(r'//uva(\d+)', code_text)
-                    filename = filename.group(1) if filename else "unknown"
-                    # 修改儲存路徑到code資料夾
-                    with open(f"{code_folder}/uva_{filename}.cpp", "w", encoding="utf-8") as file:
+                    filename_match = re.search(r'//uva(\d+)', code_text)
+                    filename = filename_match.group(1) if filename_match else "unknown"
+                    filepath = f"{code_folder}/uva_{filename}.cpp"
+                    with open(filepath, "w", encoding="utf-8") as file:
                         file.write(code_text)
-                    print(f"程式碼已儲存為 {code_folder}/uva_{filename}.cpp")
+                    print(f"程式碼已儲存為 {filepath}")
                 else:
                     print("未找到符合規律的程式碼！")
             else:
                 print("未找到 <pre class='prettyprint'> 標籤！")
-        else:
-            print(f"請求失敗，狀態碼: {code_response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"下載 {code_link} 失敗 (網路錯誤): {e}")
+        except IOError as e:
+            print(f"儲存檔案失敗 (IO 錯誤): {e}")
+        except Exception as e:
+            print(f"處理 {code_link} 失敗: {e}")
 
     # 下載測資
     for row in soup.find_all('tr')[1:]:
         cols = row.find_all('td')
+        if not cols:
+            continue
         question_number = sanitize_filename(cols[0].text)
         question_title = sanitize_filename(cols[1].text)
-        code_link = urljoin(url, cols[1].find('a')['href'])
-        # 修改下載測資的儲存路徑
-        download_and_save(code_link, f'{question_number}_{question_title}_code', folder=test_folder)
+        try:
+            code_link = urljoin(url, cols[1].find('a')['href'])
+            # 修改下載測資的儲存路徑
+            download_and_save(code_link, f'{question_number}_{question_title}_code', folder=test_folder)
+        except KeyError as e:
+            print(f"提取連結失敗 (KeyError): {e}")
+        except Exception as e:
+            print(f"處理測資失敗: {e}")
 
 if __name__ == "__main__":
     main()
-
 
 """
 Date:
